@@ -6,11 +6,11 @@ import (
 )
 
 type UserDTO struct {
-	ID        string
-	Username  string
-	Email     string
-	Password  string
-	CreatedAt time.Time
+	ID        string    `bson:"_id,omitempty"`
+	Username  string    `bson:"username"`
+	Email     string    `bson:"email"`
+	Password  string    `bson:"password"`
+	CreatedAt time.Time `bson:"created_at"`
 }
 
 type InMemoryDB struct {

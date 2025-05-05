@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"user-service/internal/config"
 	"user-service/internal/infrastructure/database"
@@ -14,19 +19,40 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	db := database.NewInMemoryDB()
+	mongoDB, err := database.NewMongoDB(cfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
 
 	grpcServer := grpc.NewServer()
 
-	routes.RegisterGRPCServices(grpcServer, db)
+	routes.RegisterGRPCServices(grpcServer, mongoDB, cfg)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("Failed to start server: %v", err)
 	}
 
-	log.Printf("User Service running on port %s", cfg.Server.Port)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("User service is running on port %s", cfg.Server.Port)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	<-quit
+	log.Println("Shutdown signal received, closing connections...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	grpcServer.GracefulStop()
+	if err := mongoDB.Close(ctx); err != nil {
+		log.Fatalf("Error while closing MongoDB connection: %v", err)
 	}
+
+	log.Println("Server stopped successfully")
 }

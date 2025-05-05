@@ -2,6 +2,7 @@ package routes
 
 import (
 	"user-service/internal/application"
+	"user-service/internal/config"
 	"user-service/internal/infrastructure/database"
 	"user-service/internal/infrastructure/persistence"
 	"user-service/internal/interfaces/handlers"
@@ -11,7 +12,17 @@ import (
 	"google.golang.org/grpc"
 )
 
-func RegisterGRPCServices(grpcServer *grpc.Server, db *database.InMemoryDB) {
+func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDB, cfg *config.Config) {
+	userRepo := persistence.NewMongoUserRepository(db)
+
+	userUseCase := application.NewUserUseCase(userRepo)
+
+	userHandler := handlers.NewUserHandler(userUseCase)
+
+	user.RegisterUserServiceServer(grpcServer, userHandler)
+}
+
+func RegisterGRPCServicesWithInMemoryDB(grpcServer *grpc.Server, db *database.InMemoryDB) {
 	userRepo := persistence.NewUserRepository(db)
 
 	userUseCase := application.NewUserUseCase(userRepo)
