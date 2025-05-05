@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package inventory;
+
+option go_package = "proto/inventory";
+
+message Product {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    float price = 4;
+    int32 stock = 5;
+    string category_id = 6;
+}
+
+message Category {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message ProductID {
+    string id = 1;
+}
+
+message CategoryID {
+    string id = 1;
+}
+
+message ProductRequest {
+    Product product = 1;
+}
+
+message ProductResponse {
+    Product product = 1;
+}
+
+message CategoryRequest {
+    Category category = 1;
+}
+
+message CategoryResponse {
+    Category category = 1;
+}
+
+message ProductListRequest {
+    string category_id = 1;
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+message ProductListResponse {
+    repeated Product products = 1;
+    int32 total = 2;
+}
+
+message CategoryListResponse {
+    repeated Category categories = 1;
+}
+
+message Empty {}
+
+service InventoryService {
+    rpc CreateProduct(ProductRequest) returns (ProductResponse);
+    rpc GetProduct(ProductID) returns (ProductResponse);
+    rpc UpdateProduct(ProductRequest) returns (ProductResponse);
+    rpc DeleteProduct(ProductID) returns (Empty);
+    rpc ListProducts(ProductListRequest) returns (ProductListResponse);
+    
+    rpc CreateCategory(CategoryRequest) returns (CategoryResponse);
+    rpc GetCategory(CategoryID) returns (CategoryResponse);
+    rpc UpdateCategory(CategoryRequest) returns (CategoryResponse);
+    rpc DeleteCategory(CategoryID) returns (Empty);
+    rpc ListCategories(Empty) returns (CategoryListResponse);
+}
