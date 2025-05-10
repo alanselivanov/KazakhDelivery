@@ -13,10 +13,10 @@ import (
 )
 
 type mongoCategoryRepository struct {
-	db *database.MongoDB
+	db *database.MongoDBConnector
 }
 
-func NewMongoCategoryRepository(db *database.MongoDB) *mongoCategoryRepository {
+func NewMongoCategoryRepository(db *database.MongoDBConnector) *mongoCategoryRepository {
 	return &mongoCategoryRepository{db: db}
 }
 

@@ -14,10 +14,10 @@ import (
 )
 
 type mongoProductRepository struct {
-	db *database.MongoDB
+	db *database.MongoDBConnector
 }
 
-func NewMongoProductRepository(db *database.MongoDB) *mongoProductRepository {
+func NewMongoProductRepository(db *database.MongoDBConnector) *mongoProductRepository {
 	return &mongoProductRepository{db: db}
 }
 
@@ -115,16 +115,13 @@ func (r *mongoProductRepository) List(ctx context.Context, categoryID string, pa
 		filter["category_id"] = categoryID
 	}
 
-	// Calculate skip for pagination
 	skip := int64((page - 1) * limit)
 
-	// Get total count
 	count, err := r.db.ProductCollection().CountDocuments(ctx, filter)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Find products with pagination
 	findOptions := options.Find().
 		SetLimit(int64(limit)).
 		SetSkip(skip).

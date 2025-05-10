@@ -11,6 +11,7 @@ import (
 
 	"order-service/internal/config"
 	"order-service/internal/infrastructure/database"
+	"order-service/internal/infrastructure/messaging"
 	"order-service/internal/interfaces/routes"
 
 	"google.golang.org/grpc"
@@ -19,17 +20,21 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	// Initialize MongoDB connection
 	mongoDB, err := database.NewMongoDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	// Setup graceful shutdown
+	natsPublisher, err := messaging.NewNATSPublisher(cfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to NATS: %v", err)
+	}
+	publisher := natsPublisher
+	log.Println("Using NATS publisher")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Handle shutdown signals
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
@@ -43,12 +48,14 @@ func main() {
 			log.Printf("Error during MongoDB disconnect: %v", err)
 		}
 
+		publisher.Close()
+
 		cancel()
 	}()
 
 	grpcServer := grpc.NewServer()
 
-	routes.RegisterGRPCServices(grpcServer, mongoDB)
+	routes.RegisterGRPCServices(grpcServer, mongoDB, publisher)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {

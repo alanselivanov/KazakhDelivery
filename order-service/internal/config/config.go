@@ -10,9 +10,15 @@ type MongoDBConfig struct {
 	Timeout  int    `yaml:"timeout"`
 }
 
+type NATSConfig struct {
+	URL     string `yaml:"url"`
+	Cluster string `yaml:"cluster"`
+}
+
 type Config struct {
 	Server  ServerConfig  `yaml:"server"`
 	MongoDB MongoDBConfig `yaml:"mongodb"`
+	NATS    NATSConfig    `yaml:"nats"`
 }
 
 func LoadConfig() *Config {
@@ -24,6 +30,10 @@ func LoadConfig() *Config {
 			URI:      "mongodb://localhost:27017",
 			Database: "order_service",
 			Timeout:  10,
+		},
+		NATS: NATSConfig{
+			URL:     "nats://localhost:4222",
+			Cluster: "microservices",
 		},
 	}
 }

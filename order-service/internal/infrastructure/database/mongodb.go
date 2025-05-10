@@ -11,17 +11,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDB struct {
+type MongoDBConnector struct {
 	Client   *mongo.Client
 	Database *mongo.Database
 }
 
-func (m *MongoDB) OrderCollection() *mongo.Collection {
+func (m *MongoDBConnector) OrderCollection() *mongo.Collection {
 	return m.Database.Collection("orders")
 }
 
-func (m *MongoDB) initIndexes(ctx context.Context) error {
-	// User ID index for faster lookup
+func (m *MongoDBConnector) initIndexes(ctx context.Context) error {
+
 	userIDIndex := mongo.IndexModel{
 		Keys: bson.M{"user_id": 1},
 	}
@@ -34,7 +34,7 @@ func (m *MongoDB) initIndexes(ctx context.Context) error {
 	return nil
 }
 
-func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
+func NewMongoDB(cfg *config.Config) (*MongoDBConnector, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.MongoDB.Timeout)*time.Second)
 	defer cancel()
 
@@ -53,7 +53,7 @@ func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
 
 	db := client.Database(cfg.MongoDB.Database)
 
-	mongodb := &MongoDB{
+	mongodb := &MongoDBConnector{
 		Client:   client,
 		Database: db,
 	}
@@ -67,6 +67,6 @@ func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
 	return mongodb, nil
 }
 
-func (m *MongoDB) Close(ctx context.Context) error {
+func (m *MongoDBConnector) Close(ctx context.Context) error {
 	return m.Client.Disconnect(ctx)
 }

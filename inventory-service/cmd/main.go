@@ -11,25 +11,36 @@ import (
 
 	"inventory-service/internal/config"
 	"inventory-service/internal/infrastructure/database"
+	"inventory-service/internal/infrastructure/messaging"
+	"inventory-service/internal/infrastructure/product"
 	"inventory-service/internal/interfaces/routes"
 
-	"google.golang.org/grpc"
+	gogrpc "google.golang.org/grpc"
 )
 
 func main() {
 	cfg := config.LoadConfig()
 
-	// Initialize MongoDB connection
 	mongoDB, err := database.NewMongoDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	// Setup graceful shutdown
+	natsConsumer, err := messaging.NewNATSConsumer(cfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to NATS: %v", err)
+	}
+	consumer := natsConsumer
+	log.Println("Using NATS consumer")
+
+	productClient, err := product.NewProductServiceClient(cfg, mongoDB)
+	if err != nil {
+		log.Fatalf("Failed to connect to Product Service: %v", err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Handle shutdown signals
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
@@ -43,12 +54,15 @@ func main() {
 			log.Printf("Error during MongoDB disconnect: %v", err)
 		}
 
+		consumer.Close()
+		productClient.Close()
+
 		cancel()
 	}()
 
-	grpcServer := grpc.NewServer()
+	grpcServer := gogrpc.NewServer()
 
-	routes.RegisterGRPCServices(grpcServer, mongoDB)
+	routes.RegisterGRPCServices(grpcServer, mongoDB, consumer, productClient)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {

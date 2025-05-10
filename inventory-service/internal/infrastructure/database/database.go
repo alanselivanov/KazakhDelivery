@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// ProductDTO represents a product in the database
 type ProductDTO struct {
 	ID          string    `bson:"_id,omitempty"`
 	Name        string    `bson:"name"`
@@ -16,7 +15,6 @@ type ProductDTO struct {
 	UpdatedAt   time.Time `bson:"updated_at"`
 }
 
-// CategoryDTO represents a category in the database
 type CategoryDTO struct {
 	ID          string    `bson:"_id,omitempty"`
 	Name        string    `bson:"name"`

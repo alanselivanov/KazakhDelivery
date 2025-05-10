@@ -58,6 +58,16 @@ message CategoryListResponse {
     repeated Category categories = 1;
 }
 
+message DecreaseStockRequest {
+    string product_id = 1;
+    int32 quantity = 2;
+}
+
+message DecreaseStockResponse {
+    bool success = 1;
+    string message = 2;
+}
+
 message Empty {}
 
 service InventoryService {
@@ -72,4 +82,7 @@ service InventoryService {
     rpc UpdateCategory(CategoryRequest) returns (CategoryResponse);
     rpc DeleteCategory(CategoryID) returns (Empty);
     rpc ListCategories(Empty) returns (CategoryListResponse);
+    
+    // Decrease the stock of a product
+    rpc DecreaseStock(DecreaseStockRequest) returns (DecreaseStockResponse);
 }

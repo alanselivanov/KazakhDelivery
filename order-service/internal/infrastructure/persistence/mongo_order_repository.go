@@ -13,15 +13,14 @@ import (
 )
 
 type mongoOrderRepository struct {
-	db *database.MongoDB
+	db *database.MongoDBConnector
 }
 
-func NewMongoOrderRepository(db *database.MongoDB) *mongoOrderRepository {
+func NewMongoOrderRepository(db *database.MongoDBConnector) *mongoOrderRepository {
 	return &mongoOrderRepository{db: db}
 }
 
 func (r *mongoOrderRepository) Create(ctx context.Context, order *domain.Order) (*domain.Order, error) {
-	// Convert domain order items to DTOs
 	itemDTOs := make([]database.OrderItemDTO, len(order.Items))
 	for i, item := range order.Items {
 		itemDTOs[i] = database.OrderItemDTO{
@@ -31,7 +30,6 @@ func (r *mongoOrderRepository) Create(ctx context.Context, order *domain.Order) 
 		}
 	}
 
-	// Create order DTO
 	orderDTO := &database.OrderDTO{
 		ID:        order.ID,
 		UserID:    order.UserID,
@@ -63,7 +61,6 @@ func (r *mongoOrderRepository) GetByID(ctx context.Context, id string) (*domain.
 		return nil, err
 	}
 
-	// Convert DTO items to domain items
 	orderItems := make([]domain.OrderItem, len(orderDTO.Items))
 	for i, item := range orderDTO.Items {
 		orderItems[i] = domain.OrderItem{
@@ -85,7 +82,6 @@ func (r *mongoOrderRepository) GetByID(ctx context.Context, id string) (*domain.
 }
 
 func (r *mongoOrderRepository) Update(ctx context.Context, order *domain.Order) (*domain.Order, error) {
-	// Convert domain order items to DTOs
 	itemDTOs := make([]database.OrderItemDTO, len(order.Items))
 	for i, item := range order.Items {
 		itemDTOs[i] = database.OrderItemDTO{
@@ -133,7 +129,6 @@ func (r *mongoOrderRepository) ListByUserID(ctx context.Context, userID string) 
 
 	orders := make([]*domain.Order, len(orderDTOs))
 	for i, dto := range orderDTOs {
-		// Convert DTO items to domain items
 		orderItems := make([]domain.OrderItem, len(dto.Items))
 		for j, item := range dto.Items {
 			orderItems[j] = domain.OrderItem{

@@ -3,6 +3,7 @@ package routes
 import (
 	"order-service/internal/application"
 	"order-service/internal/infrastructure/database"
+	"order-service/internal/infrastructure/messaging"
 	"order-service/internal/infrastructure/persistence"
 	"order-service/internal/interfaces/handlers"
 
@@ -11,11 +12,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-// RegisterGRPCServices now uses MongoDB repositories
-func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDB) {
+func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDBConnector, publisher messaging.EventPublisher) {
 	orderRepo := persistence.NewMongoOrderRepository(db)
 
-	orderUseCase := application.NewOrderUseCase(orderRepo)
+	orderUseCase := application.NewOrderUseCase(orderRepo, publisher)
 
 	orderHandler := handlers.NewOrderHandler(orderUseCase)
 

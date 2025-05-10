@@ -8,22 +8,18 @@ import (
 	"proto/inventory"
 )
 
-// InventoryHandler объединяет обработку продуктов и категорий
 type InventoryHandler struct {
 	inventory.UnimplementedInventoryServiceServer
 	productUseCase  *application.ProductUseCase
 	categoryUseCase *application.CategoryUseCase
 }
 
-// NewInventoryHandler создает новый обработчик для сервиса инвентаризации
 func NewInventoryHandler(productUseCase *application.ProductUseCase, categoryUseCase *application.CategoryUseCase) *InventoryHandler {
 	return &InventoryHandler{
 		productUseCase:  productUseCase,
 		categoryUseCase: categoryUseCase,
 	}
 }
-
-// Методы для работы с продуктами
 
 func (h *InventoryHandler) CreateProduct(ctx context.Context, req *inventory.ProductRequest) (*inventory.ProductResponse, error) {
 	product := domain.NewProduct(
@@ -134,8 +130,6 @@ func (h *InventoryHandler) ListProducts(ctx context.Context, req *inventory.Prod
 		Total:    int32(total),
 	}, nil
 }
-
-// Методы для работы с категориями
 
 func (h *InventoryHandler) CreateCategory(ctx context.Context, req *inventory.CategoryRequest) (*inventory.CategoryResponse, error) {
 	category := domain.NewCategory(

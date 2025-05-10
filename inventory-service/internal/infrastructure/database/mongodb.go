@@ -11,21 +11,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDB struct {
+type MongoDBConnector struct {
 	Client   *mongo.Client
 	Database *mongo.Database
 }
 
-func (m *MongoDB) ProductCollection() *mongo.Collection {
+func (m *MongoDBConnector) ProductCollection() *mongo.Collection {
 	return m.Database.Collection("products")
 }
 
-func (m *MongoDB) CategoryCollection() *mongo.Collection {
+func (m *MongoDBConnector) CategoryCollection() *mongo.Collection {
 	return m.Database.Collection("categories")
 }
 
-func (m *MongoDB) initIndexes(ctx context.Context) error {
-	// Product indexes
+func (m *MongoDBConnector) initIndexes(ctx context.Context) error {
 	productNameIndex := mongo.IndexModel{
 		Keys:    bson.M{"name": 1},
 		Options: options.Index().SetUnique(true),
@@ -43,7 +42,6 @@ func (m *MongoDB) initIndexes(ctx context.Context) error {
 		return err
 	}
 
-	// Category indexes
 	categoryNameIndex := mongo.IndexModel{
 		Keys:    bson.M{"name": 1},
 		Options: options.Index().SetUnique(true),
@@ -56,7 +54,7 @@ func (m *MongoDB) initIndexes(ctx context.Context) error {
 	return err
 }
 
-func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
+func NewMongoDB(cfg *config.Config) (*MongoDBConnector, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.MongoDB.Timeout)*time.Second)
 	defer cancel()
 
@@ -75,7 +73,7 @@ func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
 
 	db := client.Database(cfg.MongoDB.Database)
 
-	mongodb := &MongoDB{
+	mongodb := &MongoDBConnector{
 		Client:   client,
 		Database: db,
 	}
@@ -89,6 +87,6 @@ func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
 	return mongodb, nil
 }
 
-func (m *MongoDB) Close(ctx context.Context) error {
+func (m *MongoDBConnector) Close(ctx context.Context) error {
 	return m.Client.Disconnect(ctx)
 }

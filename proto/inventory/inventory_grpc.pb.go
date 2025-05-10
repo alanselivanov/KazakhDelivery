@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.30.2
-// source: proto/inventory.proto
+// source: inventory.proto
 
 package inventory
 
@@ -29,6 +29,7 @@ const (
 	InventoryService_UpdateCategory_FullMethodName = "/inventory.InventoryService/UpdateCategory"
 	InventoryService_DeleteCategory_FullMethodName = "/inventory.InventoryService/DeleteCategory"
 	InventoryService_ListCategories_FullMethodName = "/inventory.InventoryService/ListCategories"
+	InventoryService_DecreaseStock_FullMethodName  = "/inventory.InventoryService/DecreaseStock"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -45,6 +46,8 @@ type InventoryServiceClient interface {
 	UpdateCategory(ctx context.Context, in *CategoryRequest, opts ...grpc.CallOption) (*CategoryResponse, error)
 	DeleteCategory(ctx context.Context, in *CategoryID, opts ...grpc.CallOption) (*Empty, error)
 	ListCategories(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CategoryListResponse, error)
+	// Decrease the stock of a product
+	DecreaseStock(ctx context.Context, in *DecreaseStockRequest, opts ...grpc.CallOption) (*DecreaseStockResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -155,6 +158,16 @@ func (c *inventoryServiceClient) ListCategories(ctx context.Context, in *Empty, 
 	return out, nil
 }
 
+func (c *inventoryServiceClient) DecreaseStock(ctx context.Context, in *DecreaseStockRequest, opts ...grpc.CallOption) (*DecreaseStockResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DecreaseStockResponse)
+	err := c.cc.Invoke(ctx, InventoryService_DecreaseStock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility.
@@ -169,6 +182,8 @@ type InventoryServiceServer interface {
 	UpdateCategory(context.Context, *CategoryRequest) (*CategoryResponse, error)
 	DeleteCategory(context.Context, *CategoryID) (*Empty, error)
 	ListCategories(context.Context, *Empty) (*CategoryListResponse, error)
+	// Decrease the stock of a product
+	DecreaseStock(context.Context, *DecreaseStockRequest) (*DecreaseStockResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -208,6 +223,9 @@ func (UnimplementedInventoryServiceServer) DeleteCategory(context.Context, *Cate
 }
 func (UnimplementedInventoryServiceServer) ListCategories(context.Context, *Empty) (*CategoryListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListCategories not implemented")
+}
+func (UnimplementedInventoryServiceServer) DecreaseStock(context.Context, *DecreaseStockRequest) (*DecreaseStockResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DecreaseStock not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 func (UnimplementedInventoryServiceServer) testEmbeddedByValue()                          {}
@@ -410,6 +428,24 @@ func _InventoryService_ListCategories_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_DecreaseStock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecreaseStockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).DecreaseStock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_DecreaseStock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).DecreaseStock(ctx, req.(*DecreaseStockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -457,7 +493,11 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListCategories",
 			Handler:    _InventoryService_ListCategories_Handler,
 		},
+		{
+			MethodName: "DecreaseStock",
+			Handler:    _InventoryService_DecreaseStock_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/inventory.proto",
+	Metadata: "inventory.proto",
 }
