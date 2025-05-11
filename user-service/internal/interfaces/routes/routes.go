@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"user-service/internal/application"
 	"user-service/internal/config"
 	"user-service/internal/infrastructure/database"
@@ -12,22 +13,42 @@ import (
 	"google.golang.org/grpc"
 )
 
-func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDB, cfg *config.Config) {
-	userRepo := persistence.NewMongoUserRepository(db)
-
-	userUseCase := application.NewUserUseCase(userRepo)
-
-	userHandler := handlers.NewUserHandler(userUseCase)
-
-	user.RegisterUserServiceServer(grpcServer, userHandler)
+type Services struct {
+	RedisCache *database.RedisCache
 }
 
-func RegisterGRPCServicesWithInMemoryDB(grpcServer *grpc.Server, db *database.InMemoryDB) {
-	userRepo := persistence.NewUserRepository(db)
+func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDB, cfg *config.Config) *Services {
+	redisCache, err := database.NewRedisCache(cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Redis: %v. Continuing without caching.", err)
+		redisCache = nil
+	} else {
+		log.Println("Successfully connected to Redis")
+	}
 
-	userUseCase := application.NewUserUseCase(userRepo)
+	userRepo := persistence.NewMongoUserRepository(db)
+
+	userUseCase := application.NewUserUseCase(userRepo, redisCache)
 
 	userHandler := handlers.NewUserHandler(userUseCase)
 
 	user.RegisterUserServiceServer(grpcServer, userHandler)
+
+	return &Services{
+		RedisCache: redisCache,
+	}
+}
+
+func RegisterGRPCServicesWithInMemoryDB(grpcServer *grpc.Server, db *database.InMemoryDB) *Services {
+	userRepo := persistence.NewUserRepository(db)
+
+	userUseCase := application.NewUserUseCase(userRepo, nil)
+
+	userHandler := handlers.NewUserHandler(userUseCase)
+
+	user.RegisterUserServiceServer(grpcServer, userHandler)
+
+	return &Services{
+		RedisCache: nil,
+	}
 }

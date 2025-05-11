@@ -40,8 +40,15 @@ message UserProfile {
     string email = 3;
 }
 
+message UpdateUserRequest {
+    string id = 1;
+    string username = 2;
+    string email = 3;
+}
+
 service UserService {
     rpc RegisterUser(UserRequest) returns (UserResponse);
     rpc AuthenticateUser(AuthRequest) returns (AuthResponse);
     rpc GetUserProfile(UserID) returns (UserProfile);
+    rpc UpdateUserProfile(UpdateUserRequest) returns (UserProfile);
 }

@@ -95,3 +95,25 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 
 	return nil, nil
 }
+
+func (r *userRepository) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	_, exists := r.db.Users[user.ID]
+	if !exists {
+		return nil, nil
+	}
+
+	dto := &database.UserDTO{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Password:  user.Password,
+		CreatedAt: user.CreatedAt,
+	}
+
+	r.db.Users[user.ID] = dto
+
+	return user, nil
+}

@@ -76,3 +76,23 @@ func (c *UserController) GetUserProfile(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, res)
 }
+
+func (c *UserController) UpdateUserProfile(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	var updateReq user.UpdateUserRequest
+	if err := ctx.ShouldBindJSON(&updateReq); err != nil {
+		RespondWithError(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	updateReq.Id = id
+
+	res, err := c.client.UpdateUserProfile(ctx, &updateReq)
+	if err != nil {
+		RespondWithError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, res)
+}

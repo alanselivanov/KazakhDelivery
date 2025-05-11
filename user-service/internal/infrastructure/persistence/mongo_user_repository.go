@@ -104,3 +104,29 @@ func (r *mongoUserRepository) GetByEmail(ctx context.Context, email string) (*do
 		CreatedAt: userDTO.CreatedAt,
 	}, nil
 }
+
+func (r *mongoUserRepository) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
+	userDTO := &database.UserDTO{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Password:  user.Password,
+		CreatedAt: user.CreatedAt,
+	}
+
+	filter := bson.M{"_id": user.ID}
+	update := bson.M{"$set": userDTO}
+
+	_, err := r.db.UserCollection().UpdateOne(ctx, filter, update)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		if mongo.IsDuplicateKeyError(err) {
+			return nil, errors.New("username or email already exists")
+		}
+		return nil, err
+	}
+
+	return user, nil
+}

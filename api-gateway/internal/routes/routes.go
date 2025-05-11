@@ -49,6 +49,7 @@ func SetupRouter(cfg *config.Config) *gin.Engine {
 		users.POST("/register", userCtrl.RegisterUser)
 		users.POST("/login", userCtrl.AuthenticateUser)
 		users.GET("/:id/profile", userCtrl.GetUserProfile)
+		users.PATCH("/:id/profile", userCtrl.UpdateUserProfile)
 	}
 
 	return router

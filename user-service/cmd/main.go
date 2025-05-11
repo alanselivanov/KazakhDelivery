@@ -26,7 +26,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	routes.RegisterGRPCServices(grpcServer, mongoDB, cfg)
+	services := routes.RegisterGRPCServices(grpcServer, mongoDB, cfg)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {
@@ -52,6 +52,12 @@ func main() {
 	grpcServer.GracefulStop()
 	if err := mongoDB.Close(ctx); err != nil {
 		log.Fatalf("Error while closing MongoDB connection: %v", err)
+	}
+
+	if services.RedisCache != nil {
+		if err := services.RedisCache.Close(); err != nil {
+			log.Fatalf("Error while closing Redis connection: %v", err)
+		}
 	}
 
 	log.Println("Server stopped successfully")

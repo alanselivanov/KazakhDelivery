@@ -61,3 +61,16 @@ func (h *UserHandler) GetUserProfile(ctx context.Context, req *user.UserID) (*us
 		Email:    profile.Email,
 	}, nil
 }
+
+func (h *UserHandler) UpdateUserProfile(ctx context.Context, req *user.UpdateUserRequest) (*user.UserProfile, error) {
+	profile, err := h.userUseCase.UpdateUser(ctx, req.Id, req.Username, req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.UserProfile{
+		Id:       profile.ID,
+		Username: profile.Username,
+		Email:    profile.Email,
+	}, nil
+}

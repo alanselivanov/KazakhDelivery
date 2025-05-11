@@ -3,19 +3,28 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"regexp"
 	"unicode/utf8"
 
 	"user-service/internal/domain"
+	"user-service/internal/infrastructure/database"
 	"user-service/internal/infrastructure/persistence"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type UserUseCase struct {
-	repo persistence.UserRepository
+	repo  persistence.UserRepository
+	cache *database.RedisCache
 }
 
-func NewUserUseCase(repo persistence.UserRepository) *UserUseCase {
-	return &UserUseCase{repo: repo}
+func NewUserUseCase(repo persistence.UserRepository, cache *database.RedisCache) *UserUseCase {
+	return &UserUseCase{
+		repo:  repo,
+		cache: cache,
+	}
 }
 
 func (uc *UserUseCase) RegisterUser(ctx context.Context, username, email, password string) (*domain.User, error) {
@@ -52,7 +61,12 @@ func (uc *UserUseCase) RegisterUser(ctx context.Context, username, email, passwo
 		return nil, err
 	}
 
-	return uc.repo.Create(ctx, user)
+	createdUser, err := uc.repo.Create(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return createdUser, nil
 }
 
 func isValidEmail(email string) bool {
@@ -85,6 +99,19 @@ func (uc *UserUseCase) GetUserProfile(ctx context.Context, userID string) (*doma
 		return nil, errors.New("user ID is required")
 	}
 
+	cacheKey := fmt.Sprintf("user_profile:%s", userID)
+	var profile domain.Profile
+
+	if uc.cache != nil {
+		err := uc.cache.Get(ctx, cacheKey, &profile)
+		if err == nil {
+			log.Printf("Data retrieved from cache for user %s", userID)
+			return &profile, nil
+		} else if err != redis.Nil {
+			log.Printf("Redis error: %v", err)
+		}
+	}
+
 	user, err := uc.repo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -93,5 +120,76 @@ func (uc *UserUseCase) GetUserProfile(ctx context.Context, userID string) (*doma
 		return nil, errors.New("user not found")
 	}
 
-	return user.ToProfile(), nil
+	log.Printf("Data retrieved from database for user %s", userID)
+	userProfile := user.ToProfile()
+
+	if uc.cache != nil {
+		if err := uc.cache.Set(ctx, cacheKey, userProfile); err != nil {
+			log.Printf("Failed to cache user profile: %v", err)
+		}
+	}
+
+	return userProfile, nil
+}
+
+func (uc *UserUseCase) UpdateUser(ctx context.Context, userID, username, email string) (*domain.Profile, error) {
+	if userID == "" {
+		return nil, errors.New("user ID is required")
+	}
+
+	user, err := uc.repo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	if username != "" && username != user.Username {
+		existing, err := uc.repo.GetByUsername(ctx, username)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil && existing.ID != userID {
+			return nil, errors.New("username already exists")
+		}
+		user.Username = username
+	}
+
+	if email != "" && email != user.Email {
+		if !isValidEmail(email) {
+			return nil, errors.New("invalid email format")
+		}
+		existing, err := uc.repo.GetByEmail(ctx, email)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil && existing.ID != userID {
+			return nil, errors.New("email already exists")
+		}
+		user.Email = email
+	}
+
+	updatedUser, err := uc.repo.Update(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := uc.InvalidateUserCache(ctx, userID); err != nil {
+		log.Printf("Failed to invalidate cache: %v", err)
+	} else {
+		log.Printf("Cache invalidated for user %s", userID)
+	}
+
+	return updatedUser.ToProfile(), nil
+}
+
+func (uc *UserUseCase) InvalidateUserCache(ctx context.Context, userID string) error {
+	if uc.cache == nil {
+		return nil
+	}
+
+	cacheKey := fmt.Sprintf("user_profile:%s", userID)
+
+	return uc.cache.Delete(ctx, cacheKey)
 }

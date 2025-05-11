@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.30.2
-// source: user.proto
+// source: proto/user.proto
 
 package user
 
@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_RegisterUser_FullMethodName     = "/user.UserService/RegisterUser"
-	UserService_AuthenticateUser_FullMethodName = "/user.UserService/AuthenticateUser"
-	UserService_GetUserProfile_FullMethodName   = "/user.UserService/GetUserProfile"
+	UserService_RegisterUser_FullMethodName      = "/user.UserService/RegisterUser"
+	UserService_AuthenticateUser_FullMethodName  = "/user.UserService/AuthenticateUser"
+	UserService_GetUserProfile_FullMethodName    = "/user.UserService/GetUserProfile"
+	UserService_UpdateUserProfile_FullMethodName = "/user.UserService/UpdateUserProfile"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -31,6 +32,7 @@ type UserServiceClient interface {
 	RegisterUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	AuthenticateUser(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	GetUserProfile(ctx context.Context, in *UserID, opts ...grpc.CallOption) (*UserProfile, error)
+	UpdateUserProfile(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UserProfile, error)
 }
 
 type userServiceClient struct {
@@ -71,6 +73,16 @@ func (c *userServiceClient) GetUserProfile(ctx context.Context, in *UserID, opts
 	return out, nil
 }
 
+func (c *userServiceClient) UpdateUserProfile(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UserProfile, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserProfile)
+	err := c.cc.Invoke(ctx, UserService_UpdateUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type UserServiceServer interface {
 	RegisterUser(context.Context, *UserRequest) (*UserResponse, error)
 	AuthenticateUser(context.Context, *AuthRequest) (*AuthResponse, error)
 	GetUserProfile(context.Context, *UserID) (*UserProfile, error)
+	UpdateUserProfile(context.Context, *UpdateUserRequest) (*UserProfile, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedUserServiceServer) AuthenticateUser(context.Context, *AuthReq
 }
 func (UnimplementedUserServiceServer) GetUserProfile(context.Context, *UserID) (*UserProfile, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateUserProfile(context.Context, *UpdateUserRequest) (*UserProfile, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserProfile not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +188,24 @@ func _UserService_GetUserProfile_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_UpdateUserProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateUserProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateUserProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateUserProfile(ctx, req.(*UpdateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -191,7 +225,11 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetUserProfile",
 			Handler:    _UserService_GetUserProfile_Handler,
 		},
+		{
+			MethodName: "UpdateUserProfile",
+			Handler:    _UserService_UpdateUserProfile_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "user.proto",
+	Metadata: "proto/user.proto",
 }
