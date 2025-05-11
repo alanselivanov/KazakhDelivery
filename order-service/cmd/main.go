@@ -32,8 +32,18 @@ func main() {
 	publisher := natsPublisher
 	log.Println("Using NATS publisher")
 
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	grpcServer := grpc.NewServer()
+
+	services := routes.RegisterGRPCServices(grpcServer, mongoDB, publisher)
+
+	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	log.Printf("Order Service running on port %s", cfg.Server.Port)
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
@@ -50,24 +60,14 @@ func main() {
 
 		publisher.Close()
 
-		cancel()
-	}()
+		if services.RedisCache != nil {
+			if err := services.RedisCache.Close(); err != nil {
+				log.Printf("Error during Redis disconnect: %v", err)
+			}
+		}
 
-	grpcServer := grpc.NewServer()
-
-	routes.RegisterGRPCServices(grpcServer, mongoDB, publisher)
-
-	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	log.Printf("Order Service running on port %s", cfg.Server.Port)
-
-	go func() {
-		<-ctx.Done()
-		log.Println("Stopping gRPC server...")
 		grpcServer.GracefulStop()
+		cancel()
 	}()
 
 	if err := grpcServer.Serve(lis); err != nil {
