@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"inventory-service/internal/config"
+	"inventory-service/internal/infrastructure/cache"
 	"inventory-service/internal/infrastructure/database"
 	"inventory-service/internal/infrastructure/messaging"
 	"inventory-service/internal/infrastructure/product"
@@ -24,6 +25,12 @@ func main() {
 	mongoDB, err := database.NewMongoDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
+
+	redisClient, err := cache.NewRedisClient(cfg)
+	if err != nil {
+		log.Printf("Failed to connect to Redis, proceeding without caching: %v", err)
+		redisClient = nil
 	}
 
 	natsConsumer, err := messaging.NewNATSConsumer(cfg)
@@ -54,6 +61,12 @@ func main() {
 			log.Printf("Error during MongoDB disconnect: %v", err)
 		}
 
+		if redisClient != nil {
+			if err := redisClient.Close(); err != nil {
+				log.Printf("Error during Redis disconnect: %v", err)
+			}
+		}
+
 		consumer.Close()
 		productClient.Close()
 
@@ -62,7 +75,7 @@ func main() {
 
 	grpcServer := gogrpc.NewServer()
 
-	routes.RegisterGRPCServices(grpcServer, mongoDB, consumer, productClient)
+	routes.RegisterGRPCServices(grpcServer, mongoDB, consumer, productClient, redisClient)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Server.Port)
 	if err != nil {

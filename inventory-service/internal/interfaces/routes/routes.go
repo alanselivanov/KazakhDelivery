@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"inventory-service/internal/application"
+	"inventory-service/internal/infrastructure/cache"
 	"inventory-service/internal/infrastructure/database"
 	"inventory-service/internal/infrastructure/messaging"
 	"inventory-service/internal/infrastructure/persistence"
@@ -19,9 +20,21 @@ func RegisterGRPCServices(
 	db *database.MongoDBConnector,
 	consumer messaging.EventConsumer,
 	productClient product.ProductServiceClient,
+	redisClient *cache.RedisClient,
 ) {
-	productRepo := persistence.NewMongoProductRepository(db)
+	// Create base repositories
+	mongoProductRepo := persistence.NewMongoProductRepository(db)
 	categoryRepo := persistence.NewMongoCategoryRepository(db)
+
+	// Create product repository with caching if Redis is available
+	var productRepo persistence.ProductRepository
+	if redisClient != nil {
+		productRepo = persistence.NewRedisProductRepository(mongoProductRepo, redisClient)
+		log.Println("Using Redis-backed product repository with caching")
+	} else {
+		productRepo = mongoProductRepo
+		log.Println("Using MongoDB product repository without caching")
+	}
 
 	productUseCase := application.NewProductUseCase(productRepo)
 	categoryUseCase := application.NewCategoryUseCase(categoryRepo)

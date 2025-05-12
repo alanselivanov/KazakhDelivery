@@ -14,6 +14,12 @@ type CategoryRepository interface {
 	List(ctx context.Context) ([]*domain.Category, error)
 }
 
+type CacheableProductRepository interface {
+	ProductRepository
+	InvalidateCache(ctx context.Context, productID string) error
+	InvalidateListCache(ctx context.Context) error
+}
+
 type ProductRepository interface {
 	Create(ctx context.Context, product *domain.Product) (*domain.Product, error)
 	GetByID(ctx context.Context, id string) (*domain.Product, error)
