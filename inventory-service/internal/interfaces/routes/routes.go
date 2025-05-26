@@ -22,11 +22,9 @@ func RegisterGRPCServices(
 	productClient product.ProductServiceClient,
 	redisClient *cache.RedisClient,
 ) {
-	// Create base repositories
 	mongoProductRepo := persistence.NewMongoProductRepository(db)
 	categoryRepo := persistence.NewMongoCategoryRepository(db)
 
-	// Create product repository with caching if Redis is available
 	var productRepo persistence.ProductRepository
 	if redisClient != nil {
 		productRepo = persistence.NewRedisProductRepository(mongoProductRepo, redisClient)

@@ -26,13 +26,12 @@ func NewRedisProductRepository(repo *mongoProductRepository, redisClient *cache.
 }
 
 func (r *redisProductRepository) Create(ctx context.Context, product *domain.Product) (*domain.Product, error) {
-	// Create product in the database
+
 	result, err := r.repo.Create(ctx, product)
 	if err != nil {
 		return nil, err
 	}
 
-	// Invalidate list cache when a new product is added
 	if err := r.InvalidateListCache(ctx); err != nil {
 		log.Printf("Failed to invalidate list cache: %v", err)
 	}
@@ -45,13 +44,12 @@ func (r *redisProductRepository) GetByID(ctx context.Context, id string) (*domai
 }
 
 func (r *redisProductRepository) Update(ctx context.Context, product *domain.Product) (*domain.Product, error) {
-	// Update product in the database
+
 	result, err := r.repo.Update(ctx, product)
 	if err != nil {
 		return nil, err
 	}
 
-	// Invalidate caches
 	if err := r.InvalidateCache(ctx, product.ID); err != nil {
 		log.Printf("Failed to invalidate product cache: %v", err)
 	}
@@ -64,13 +62,12 @@ func (r *redisProductRepository) Update(ctx context.Context, product *domain.Pro
 }
 
 func (r *redisProductRepository) Delete(ctx context.Context, id string) error {
-	// Delete product from the database
+
 	err := r.repo.Delete(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	// Invalidate caches
 	if err := r.InvalidateCache(ctx, id); err != nil {
 		log.Printf("Failed to invalidate product cache: %v", err)
 	}
@@ -83,10 +80,9 @@ func (r *redisProductRepository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *redisProductRepository) List(ctx context.Context, categoryID string, page, limit int) ([]*domain.Product, int, error) {
-	// Generate cache key based on parameters
+
 	cacheKey := fmt.Sprintf("products:list:%s:%d:%d", categoryID, page, limit)
 
-	// Try to get from cache
 	var cachedResult CachedListResult
 	found, err := r.redisClient.Get(ctx, cacheKey, &cachedResult)
 	if err != nil {
@@ -98,7 +94,6 @@ func (r *redisProductRepository) List(ctx context.Context, categoryID string, pa
 		return cachedResult.Products, cachedResult.Total, nil
 	}
 
-	// If not in cache, get from database
 	products, total, err := r.repo.List(ctx, categoryID, page, limit)
 	if err != nil {
 		return nil, 0, err
@@ -106,7 +101,6 @@ func (r *redisProductRepository) List(ctx context.Context, categoryID string, pa
 
 	log.Println("Data fetched from database")
 
-	// Store in cache for future requests
 	cachedResult = CachedListResult{
 		Products: products,
 		Total:    total,
