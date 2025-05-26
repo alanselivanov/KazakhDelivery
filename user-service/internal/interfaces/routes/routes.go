@@ -5,6 +5,7 @@ import (
 	"user-service/internal/application"
 	"user-service/internal/config"
 	"user-service/internal/infrastructure/database"
+	"user-service/internal/infrastructure/mail"
 	"user-service/internal/infrastructure/persistence"
 	"user-service/internal/interfaces/handlers"
 
@@ -14,7 +15,8 @@ import (
 )
 
 type Services struct {
-	RedisCache *database.RedisCache
+	RedisCache  *database.RedisCache
+	MailService *mail.MailService
 }
 
 func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDB, cfg *config.Config) *Services {
@@ -26,29 +28,39 @@ func RegisterGRPCServices(grpcServer *grpc.Server, db *database.MongoDB, cfg *co
 		log.Println("Successfully connected to Redis")
 	}
 
+	mailService := mail.NewMailService(cfg)
+	if cfg.SMTP.Username == "" || cfg.SMTP.Password == "" {
+		log.Println("Warning: SMTP credentials not provided. Email functionality will be disabled.")
+		mailService = nil
+	} else {
+		log.Println("Mail service configured successfully")
+	}
+
 	userRepo := persistence.NewMongoUserRepository(db)
 
-	userUseCase := application.NewUserUseCase(userRepo, redisCache)
+	userUseCase := application.NewUserUseCase(userRepo, redisCache, mailService)
 
 	userHandler := handlers.NewUserHandler(userUseCase)
 
 	user.RegisterUserServiceServer(grpcServer, userHandler)
 
 	return &Services{
-		RedisCache: redisCache,
+		RedisCache:  redisCache,
+		MailService: mailService,
 	}
 }
 
 func RegisterGRPCServicesWithInMemoryDB(grpcServer *grpc.Server, db *database.InMemoryDB) *Services {
 	userRepo := persistence.NewUserRepository(db)
 
-	userUseCase := application.NewUserUseCase(userRepo, nil)
+	userUseCase := application.NewUserUseCase(userRepo, nil, nil)
 
 	userHandler := handlers.NewUserHandler(userUseCase)
 
 	user.RegisterUserServiceServer(grpcServer, userHandler)
 
 	return &Services{
-		RedisCache: nil,
+		RedisCache:  nil,
+		MailService: nil,
 	}
 }

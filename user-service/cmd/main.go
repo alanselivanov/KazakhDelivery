@@ -19,6 +19,13 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
+	log.Println("Starting user service...")
+	if cfg.SMTP.Username != "" && cfg.SMTP.Password != "" {
+		log.Println("SMTP configuration found")
+	} else {
+		log.Println("Warning: SMTP configuration not found or incomplete. Email functionality will be disabled.")
+	}
+
 	mongoDB, err := database.NewMongoDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)

@@ -10,20 +10,23 @@ import (
 
 	"user-service/internal/domain"
 	"user-service/internal/infrastructure/database"
+	"user-service/internal/infrastructure/mail"
 	"user-service/internal/infrastructure/persistence"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type UserUseCase struct {
-	repo  persistence.UserRepository
-	cache *database.RedisCache
+	repo        persistence.UserRepository
+	cache       *database.RedisCache
+	mailService *mail.MailService
 }
 
-func NewUserUseCase(repo persistence.UserRepository, cache *database.RedisCache) *UserUseCase {
+func NewUserUseCase(repo persistence.UserRepository, cache *database.RedisCache, mailService *mail.MailService) *UserUseCase {
 	return &UserUseCase{
-		repo:  repo,
-		cache: cache,
+		repo:        repo,
+		cache:       cache,
+		mailService: mailService,
 	}
 }
 
@@ -64,6 +67,18 @@ func (uc *UserUseCase) RegisterUser(ctx context.Context, username, email, passwo
 	createdUser, err := uc.repo.Create(ctx, user)
 	if err != nil {
 		return nil, err
+	}
+
+	if uc.mailService != nil {
+		go func() {
+			if err := uc.mailService.SendRegistrationConfirmation(email, username); err != nil {
+				log.Printf("Failed to send registration confirmation email: %v", err)
+			} else {
+				log.Printf("Registration confirmation email sent to %s", email)
+			}
+		}()
+	} else {
+		log.Println("Mail service is not configured, skipping registration confirmation email")
 	}
 
 	return createdUser, nil
