@@ -47,7 +47,7 @@ func LoadConfig() *Config {
 			URI:      "localhost:6379",
 			Password: "",
 			DB:       0,
-			TTL:      60, // Cache TTL in minutes
+			TTL:      60,
 		},
 	}
 }
