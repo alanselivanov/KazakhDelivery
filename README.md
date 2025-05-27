@@ -46,6 +46,41 @@ docker-compose up -d
    - Inventory Service: localhost:50051 (gRPC)
    - Order Service: localhost:50052 (gRPC)
 
+## Tests
+
+### Test Structure
+The project uses a comprehensive testing strategy with different test types:
+- **Unit Tests** - Test individual components in isolation
+- **Integration Tests** - Test interactions between multiple services
+
+### Running Tests
+
+#### Run All Tests
+```
+go test ./tests/...
+```
+
+#### Run Only Unit Tests
+```
+go test ./tests/unit/...
+```
+
+#### Run Only Integration Tests
+```
+go test ./tests/integration/...
+```
+
+#### Run Tests with Verbose Output
+```
+go test ./tests/... -v
+```
+
+### Testing Tools
+- **testify** - Assertion library
+- **httpexpect** - API testing framework
+- **testcontainers-go** - Container management for tests
+- **gomock** - Mocking framework for unit tests
+
 ## gRPC Endpoints
 
 ### User Service
